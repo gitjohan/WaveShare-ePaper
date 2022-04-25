@@ -27,14 +27,15 @@
 # THE SOFTWARE.
 #
 
-import logging
+from os import path
+import sys
 from . import epdconfig
+sys.path.append(r'/home/wannes/wisc')
+from wanlib import loglvl, wisclogger, dtn
 
 # Display resolution
 EPD_WIDTH       = 128
 EPD_HEIGHT      = 296
-
-logger = logging.getLogger(__name__)
 
 class EPD:
     def __init__(self):
@@ -82,19 +83,19 @@ class EPD:
         epdconfig.spi_writebyte([data])
         epdconfig.digital_write(self.cs_pin, 1)
         
-    def ReadBusy(self):
-        while(epdconfig.digital_read(self.busy_pin) == 1):      #  0: idle, 1: busy
-            epdconfig.delay_ms(200) 
+    def ReadBusy(self, comment):
+        if epdconfig.digital_read(self.busy_pin) == 1:
+            wisclog.deep(f"e-Paper busy, holding: {comment}")
+            while(epdconfig.digital_read(self.busy_pin) == 1):      #  0: idle, 1: busy
+                epdconfig.delay_ms(200)
+            wisclog.deep("e-Paper busy release")
 
-    def TurnOnDisplay(self):
+    def TurnOnDisplay(self, comment):
         self.send_command(0x22) # DISPLAY_UPDATE_CONTROL_2
         self.send_data(0xC4)
         self.send_command(0x20) # MASTER_ACTIVATION
         self.send_command(0xFF) # TERMINATE_FRAME_READ_WRITE
-        
-        logger.debug("e-Paper busy")
-        self.ReadBusy()
-        logger.debug("e-Paper busy release")  
+        self.ReadBusy(comment)
 
     def SetWindow(self, x_start, y_start, x_end, y_end):
         self.send_command(0x44) # SET_RAM_X_ADDRESS_START_END_POSITION
@@ -114,7 +115,7 @@ class EPD:
         self.send_command(0x4F) # SET_RAM_Y_ADDRESS_COUNTER
         self.send_data(y & 0xFF)
         self.send_data((y >> 8) & 0xFF)
-        self.ReadBusy()
+        self.ReadBusy("SetCursor")
         
     def init(self, lut):
         if (epdconfig.module_init() != 0):
@@ -151,21 +152,21 @@ class EPD:
         return 0
 
     def getbuffer(self, image):
-        # logger.debug("bufsiz = ",int(self.width/8) * self.height)
+        # wisclog.debug("bufsiz = ",int(self.width/8) * self.height)
         buf = [0xFF] * (int(self.width/8) * self.height)
         image_monocolor = image.convert('1')
         imwidth, imheight = image_monocolor.size
         pixels = image_monocolor.load()
-        # logger.debug("imwidth = %d, imheight = %d",imwidth,imheight)
+        # wisclog.debug("imwidth = %d, imheight = %d",imwidth,imheight)
         if(imwidth == self.width and imheight == self.height):
-            logger.debug("Vertical")
+            # wisclog.debug("Vertical")
             for y in range(imheight):
                 for x in range(imwidth):
                     # Set the bits for the column of pixels at the current position.
                     if pixels[x, y] == 0:
                         buf[int((x + y * self.width) / 8)] &= ~(0x80 >> (x % 8))
         elif(imwidth == self.height and imheight == self.width):
-            logger.debug("Horizontal")
+            # wisclog.debug("Horizontal")
             for y in range(imheight):
                 for x in range(imwidth):
                     newx = y
@@ -183,22 +184,29 @@ class EPD:
             self.send_command(0x24) # WRITE_RAM
             for i in range(0, int(self.width / 8)):
                 self.send_data(image[i + j * int(self.width / 8)])   
-        self.TurnOnDisplay()
-        
+        self.TurnOnDisplay("write screen")
+
     def Clear(self, color):
         self.SetWindow(0, 0, self.width - 1, self.height - 1)
         for j in range(0, self.height):
             self.SetCursor(0, j)
             self.send_command(0x24) # WRITE_RAM
             for i in range(0, int(self.width / 8)):
-                self.send_data(color)   
-        self.TurnOnDisplay()
+                self.send_data(color)
+        self.TurnOnDisplay("clear screen")
 
     def sleep(self):
         self.send_command(0x10) # DEEP_SLEEP_MODE
         self.send_data(0x01)
-        
         epdconfig.delay_ms(2000)
         epdconfig.module_exit()
+        wisclog.deep("eink sleep")
+
+fn = path.basename(__file__)
+wisclog = wisclogger(loglvl, fn)
+loginfo = f"appstart {fn.ljust(20)}: loglvl {loglvl}, {wisclog.logfile}"
+wisclog.info(loginfo)
+print(f"{dtn()} {loginfo}")
+
 ### END OF FILE ###
 
