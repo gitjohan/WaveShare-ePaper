@@ -206,7 +206,7 @@ fn = path.basename(__file__)
 wisclog = wisclogger(loglvl, fn)
 loginfo = f"appstart {fn.ljust(20)}: loglvl {loglvl}, {wisclog.logfile}"
 wisclog.info(loginfo)
-print(f"{dtn()} {loginfo}")
+print(f"{dtn('log')} {loginfo}")
 
 ### END OF FILE ###
 

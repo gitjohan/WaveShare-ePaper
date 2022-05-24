@@ -86,13 +86,13 @@ class RaspberryPi:
         self.SPI.close()
         self.GPIO.output(self.RST_PIN, 0)
         self.GPIO.output(self.DC_PIN, 0)
-        # self.GPIO.cleanup()  # cleanup is done in Wisc
+        self.GPIO.cleanup([self.RST_PIN, self.DC_PIN, self.CS_PIN, self.BUSY_PIN])
 
 fn = path.basename(__file__)
 wisclog = wisclogger(loglvl, fn)
 loginfo = f"appstart {fn.ljust(20)}: loglvl {loglvl}, {wisclog.logfile}"
 wisclog.info(loginfo)
-print(f"{dtn()} {loginfo}")
+print(f"{dtn('log')} {loginfo}")
 
 # os.path.exists('/sys/bus/platform/drivers/gpiomem-bcm2835'):
 implementation = RaspberryPi()
