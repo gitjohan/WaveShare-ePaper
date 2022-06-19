@@ -30,16 +30,17 @@
 from os import path
 import sys
 import time
+
 sys.path.append(r'/home/wannes/wisc')
 from wanlib import loglvl, wisclogger, dtn
 
 
 class RaspberryPi:
     # Pin definition
-    RST_PIN         = 17  # active low
-    DC_PIN          = 25  # high = data, low = command
-    CS_PIN          = 8   # active low
-    BUSY_PIN        = 24  # active high
+    RST_PIN = 17  # active low
+    DC_PIN = 25  # high = data, low = command
+    CS_PIN = 8  # active low
+    BUSY_PIN = 24  # active high
     """
     ALSO USED (hardware spidev)
     GPIO 10 --> MOSI
@@ -88,10 +89,11 @@ class RaspberryPi:
         self.GPIO.output(self.DC_PIN, 0)
         self.GPIO.cleanup([self.RST_PIN, self.DC_PIN, self.CS_PIN, self.BUSY_PIN])
 
+
 fn = path.basename(__file__)
-wisclog = wisclogger(loglvl, fn)
+wisclog = wisclogger(loglvl, fn, category='ink')
 loginfo = f"appstart {fn.ljust(20)}: loglvl {loglvl}, {wisclog.logfile}"
-wisclog.info(loginfo)
+wisclog.warning(loginfo)
 print(f"{dtn('log')} {loginfo}")
 
 # os.path.exists('/sys/bus/platform/drivers/gpiomem-bcm2835'):
